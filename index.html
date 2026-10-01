@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Monthly Bills</title>
+<meta name="description" content="Track monthly bills, extra expenses, savings goals, and debt payoff.">
 <meta name="theme-color" id="tc" content="#16342c">
 <script>try{var _t=localStorage.getItem("billManager.theme");if(_t)document.documentElement.setAttribute("data-theme",_t)}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bills">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap">
 <style>
@@ -44,13 +45,15 @@ input.amt{width:92px;text-align:right}input.day{width:56px;text-align:center;pad
 .empty{padding:16px 14px;color:var(--mute)}.mini{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}.mini i{display:block;height:100%;background:var(--ok)}
 textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,monospace;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px}
 .note{color:var(--mute);font-size:14px;margin:8px 0 0}
-.dt{margin-top:4px;padding:5px 8px;font-size:14px}.add .dt{margin:0;padding:8px 10px;font-size:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}.top h1{margin:0}.top select{padding:6px 8px;font-size:14px}
+.bn{display:flex;flex-direction:column;align-items:flex-start;gap:5px}.pill{position:relative;display:inline-block;min-width:128px;text-align:center;padding:5px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--mute);background:var(--bg);cursor:pointer;overflow:hidden;white-space:nowrap}.pill input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;font-size:16px}.pill.late{color:var(--bad);border-color:var(--bad)}.pill.soon{color:var(--extra);border-color:var(--extra)}.pill.big{font-size:16px;padding:10px 14px;border-radius:8px;color:var(--ink)}.inc label{white-space:nowrap}.top select{font-size:16px}.pill:focus-within{outline:2px solid var(--ok);outline-offset:2px}.x.arm{color:var(--bad);font-size:14px;font-weight:600}.banner{background:var(--extra);color:#1b1405;border-radius:12px;padding:12px 14px;margin:0 0 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.banner button{font:600 14px Archivo,system-ui,sans-serif;border:0;border-radius:8px;padding:8px 12px;background:#1b1405;color:#fff;cursor:pointer}:root{color-scheme:light dark}:root[data-theme="light"],:root[data-theme="desert"]{color-scheme:light}:root[data-theme="dark"],:root[data-theme="midnight"],:root[data-theme="olive"],:root[data-theme="sunset"]{color-scheme:dark}.dt{margin-top:4px;padding:5px 8px;font-size:14px}.add .dt{margin:0;padding:8px 10px;font-size:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}.top h1{margin:0}.top select{padding:6px 8px;font-size:14px}
 :root[data-theme="midnight"]{--bg:#0b1220;--card:#121c30;--ink:#e6edf8;--mute:#8a9ab5;--line:#22304d;--ok:#5aa9ff;--bill:#7d8fb0;--extra:#f2b84b;--bad:#ff7b72;--on:#07101f}
 :root[data-theme="desert"]{--bg:#f3e9dc;--card:#fffaf2;--ink:#3b2a20;--mute:#8a7565;--line:#e4d3bf;--ok:#b4532a;--bill:#6b4f3f;--extra:#d99a2b;--bad:#a3262a;--on:#fff}
 :root[data-theme="olive"]{--bg:#1a1f14;--card:#232a1b;--ink:#e7ebd9;--mute:#9aa585;--line:#343d27;--ok:#a8c256;--bill:#7d8a63;--extra:#d9b44a;--bad:#e0735a;--on:#141a0c}
 :root[data-theme="sunset"]{--bg:#1d1226;--card:#2a1b36;--ink:#f6e9f5;--mute:#b79bb8;--line:#3d2a4b;--ok:#ff8a5b;--bill:#a58bc0;--extra:#ffd166;--bad:#ff5d7a;--on:#1d1226}
 </style></head><body><main>
+<noscript><p style="padding:16px">This app needs JavaScript turned on.</p></noscript>
 <div class="top"><h1 id="month"></h1><select id="theme" aria-label="Color theme"></select></div>
+<div id="banner"></div>
 <div class="hero">
  <div class="big" id="left"></div><div class="sub" id="lbl"></div>
  <div class="bar" id="bar"></div><div class="legend" id="legend"></div>
@@ -59,7 +62,9 @@ textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,monospace;color:var(-
 </div>
 <section id="checks" hidden><div class="head"><h2>Per paycheck</h2><span>Bills due 1st–14th use check 1, 15th+ use check 2</span></div><div class="list" id="checkList"></div></section>
 <section><div class="head"><h2>Bills</h2><span id="billSum"></span></div><div class="list" id="bills"></div>
- <div class="add"><input type="text" id="bName" placeholder="New bill name" aria-label="Bill name"><input type="number" id="bAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><input class="dt" type="date" id="bDue" aria-label="Due date"><button class="btn" id="addBill">Add bill</button></div></section>
+ <div class="add"><input type="text" id="bName" placeholder="New bill name" aria-label="Bill name"><input type="number" id="bAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><label class="pill big"><span id="bDueTxt">Due date</span><input type="date" id="bDue" aria-label="Due date"></label><button class="btn" id="addBill">Add bill</button></div></section>
+<section><div class="head"><h2>Extra pay</h2><span id="incSum"></span></div><div class="list" id="incList"></div>
+ <div class="add"><input type="text" id="iName" placeholder="Source (bonus, overtime...)" aria-label="Source"><input type="number" id="iAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><input type="date" id="iDate" aria-label="Date"><button class="btn" id="addInc">Add pay</button></div></section>
 <section><div class="head"><h2>Extra expenses</h2><span id="exSum"></span></div><div class="list" id="extras"></div>
  <div class="add"><input type="text" id="eName" placeholder="What was it?" aria-label="Description"><input type="number" id="eAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><select id="eCat" aria-label="Category"></select><input type="date" id="eDate" aria-label="Date"><button class="btn" id="addEx">Add expense</button></div></section>
 <section><div class="head"><h2>Spending by category</h2><span>Set a monthly cap if you want one</span></div><div class="list" id="cats"></div></section>
@@ -67,16 +72,28 @@ textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,monospace;color:var(-
 <section><div class="head"><h2>Debt payoff</h2><span>Interest not included</span></div><div class="list" id="debts"></div>
  <div class="add"><select id="dBill" aria-label="Bill"></select><input type="number" id="dBal" step="0.01" inputmode="decimal" placeholder="Balance owed" aria-label="Balance"><button class="btn" id="addDebt">Track debt</button></div></section>
 <section><div class="head"><h2>Month history</h2><button class="btn ghost" id="close">Close out month</button></div><div class="list" id="hist"></div>
- <p class="note" id="closeNote">Close out saves a snapshot, adds anything left over to savings, lowers tracked debt balances by the bills you paid, then unchecks bills and clears extras.</p></section>
+ <p class="note" id="closeNote">Close out saves a snapshot (including extra pay), adds anything left over to savings, lowers tracked debt balances by the bills you paid, then unchecks bills and clears extras.</p></section>
 <section><div class="head"><h2>Backup</h2></div>
  <textarea id="bk" aria-label="Backup data" placeholder="Export fills this box. Paste a backup here to import."></textarea>
  <div class="add"><button class="btn" id="exp">Export</button><button class="btn ghost" id="imp">Import</button></div><p class="note" id="bkNote">Your data lives in this browser only. Export and keep a copy somewhere safe, or paste it into another device to move over.</p></section>
-</main>
+<p class="note" style="text-align:center;margin-top:28px">Version 7 (extra pay)</p></main>
 <script>
 var KEY="billManager.v1",CATS=["Fuel","Food","Fun","Other"],defs=[["Mortgage",2044,1],["Electric",170],["Gas (utility)",39.24],["Water",30],["Sewer/Trash",45],["Internet",70],["ADT Security",63.99],["Motorcycle loan",360],["Progressive",106.08],["USAA Insurance",38.44],["Gas (fuel)",100],["My Synchrony",105],["Daughter visits",250],["Planet Fitness",16.28],["T-Mobile",164.57],["Amazon Prime",16.27]],S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.bills)S={income:5186,bills:defs.map(function(b,i){return{id:i+1,name:b[0],amt:b[1],paid:false}}),extras:[],next:100};
-S.hist=S.hist||[];S.caps=S.caps||{};S.goal=S.goal||{target:0,saved:0};S.pay=S.pay||"monthly";S.next=S.next||100;
+S=norm(S);
+function p2(n){return("0"+n).slice(-2)}
+function ym(){var d=new Date();return d.getFullYear()+"-"+p2(d.getMonth()+1)}
+function tdy(){var d=new Date();return ym()+"-"+p2(d.getDate())}
+function mLabel(k){return new Date(+k.slice(0,4),+k.slice(5)-1,1).toLocaleDateString("en-US",{month:"long",year:"numeric"})}
+function norm(n){var N=function(v){v=parseFloat(v);return isFinite(v)?Math.round(v*100)/100:0},A=function(v){return Array.isArray(v)?v:[]};n=n&&typeof n==="object"?n:{};
+var o={income:N(n.income),pay:n.pay==="twice"?"twice":"monthly",caps:{},goal:{target:N(n.goal&&n.goal.target),saved:N(n.goal&&n.goal.saved)},month:/^\d{4}-\d{2}$/.test(n.month)?n.month:ym(),
+bills:A(n.bills).map(function(b,i){return{id:parseInt(b.id)||i+1,name:String(b.name||"Bill").slice(0,60),amt:N(b.amt),paid:!!b.paid,due:Math.max(0,Math.min(31,parseInt(b.due)||0)),bal:N(b.bal)}}),
+extras:A(n.extras).map(function(e,i){return{id:parseInt(e.id)||i+1,name:String(e.name||"Expense").slice(0,60),amt:N(e.amt),cat:CATS.indexOf(e.cat)>-1?e.cat:"Other",date:/^\d{4}-\d{2}-\d{2}$/.test(e.date)?e.date:""}}),
+inc:A(n.inc).map(function(e,i){return{id:parseInt(e.id)||i+1,name:String(e.name||"Extra pay").slice(0,60),amt:N(e.amt),date:/^\d{4}-\d{2}-\d{2}$/.test(e.date)?e.date:""}}),
+hist:A(n.hist).map(function(x){return{month:String(x.month||"").slice(0,30),b:N(x.b),e:N(x.e),i:N(x.i),left:N(x.left)}})};
+CATS.forEach(function(c){if(n.caps&&n.caps[c])o.caps[c]=N(n.caps[c])});
+var mx=0;o.bills.concat(o.extras,o.inc).forEach(function(x){mx=Math.max(mx,x.id)});o.next=Math.max(100,parseInt(n.next)||0,mx+1);return o}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
@@ -86,20 +103,19 @@ function sum(a,f){return a.reduce(function(t,x){return t+f(x)},0)}
 function amt(x){return x.amt}
 function ord(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
 function num2(n){return Math.max(0,Math.min(100,n))}
-function totals(){var b=sum(S.bills,amt),e=sum(S.extras,amt);return{b:b,e:e,left:S.income-b-e}}
+function totals(){var b=sum(S.bills,amt),e=sum(S.extras,amt),i=sum(S.inc,amt);return{b:b,e:e,i:i,left:S.income+i-b-e}}
 function mr(){var d=new Date();return{y:d.getFullYear(),m:d.getMonth(),n:new Date(d.getFullYear(),d.getMonth()+1,0).getDate()}}
-function p2(n){return("0"+n).slice(-2)}
 function iso(day){var r=mr();return r.y+"-"+p2(r.m+1)+"-"+p2(Math.min(day,r.n))}
 function lim(){var r=mr(),p=r.y+"-"+p2(r.m+1)+"-";return' min="'+p+'01" max="'+p+p2(r.n)+'"'}
 function dayOf(v){return v?parseInt(v.slice(8,10),10)||0:0}
 function render(){
  var d=new Date(),today=d.getDate(),t=totals();
- $("month").textContent=d.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+ $("month").textContent=d.toLocaleDateString("en-US",{month:"long",year:"numeric"});$("banner").innerHTML=S.month!==ym()?'<div class="banner"><span>New month. Close out '+esc(mLabel(S.month))+' to start fresh.</span><button data-close="1">Close out</button></div>':"";
  $("left").textContent=m(t.left);$("left").className="big"+(t.left<0?" neg":"");
  $("lbl").textContent=t.left<0?"over budget this month":"left after bills and extras";
- var base=Math.max(S.income,t.b+t.e,1);
+ var base=Math.max(S.income+t.i,t.b+t.e,1);
  $("bar").innerHTML='<i style="width:'+t.b/base*100+'%;background:var(--bill)"></i><i style="width:'+t.e/base*100+'%;background:var(--extra)"></i><i style="width:'+Math.max(t.left,0)/base*100+'%;background:var(--ok)"></i>';
- $("legend").innerHTML=[["bill","Bills",t.b],["extra","Extras",t.e],["ok","Left",Math.max(t.left,0)]].map(function(x){return'<span><span class="dot" style="background:var(--'+x[0]+')"></span>'+x[1]+' <b>'+m(x[2])+'</b></span>'}).join("");
+ $("legend").innerHTML=[["bill","Bills",t.b],["extra","Extras",t.e],["ok","Left",Math.max(t.left,0)]].map(function(x){return'<span><span class="dot" style="background:var(--'+x[0]+')"></span>'+x[1]+' <b>'+m(x[2])+'</b></span>'}).join("")+(t.i?'<span><span class="dot" style="background:var(--ok);opacity:.45"></span>Extra pay <b>+'+m(t.i)+'</b></span>':"");
  if(document.activeElement!==$("income"))$("income").value=S.income;$("pay").value=S.pay;
  // paychecks
  $("checks").hidden=S.pay!=="twice";
@@ -110,13 +126,17 @@ function render(){
  var bills=S.bills.slice().sort(function(a,b){return(a.due||99)-(b.due||99)}),paidT=sum(S.bills,function(b){return b.paid?b.amt:0});
  $("billSum").textContent=m(paidT)+" paid, "+m(t.b-paidT)+" due";
  $("bills").innerHTML=bills.length?bills.map(function(b){
-  var s="",c="";if(b.due){s="Due the "+ord(b.due);if(!b.paid){if(b.due<today){s="Overdue, was due the "+ord(b.due);c="late"}else if(b.due-today<=3){s="Due soon, the "+ord(b.due);c="soon"}}}
-  return'<div class="row'+(b.paid?" paid":"")+'"><input type="checkbox" data-l="bills" data-i="'+b.id+'" data-k="paid"'+(b.paid?" checked":"")+' aria-label="Mark '+esc(b.name)+' paid"><div class="nm"><b>'+esc(b.name)+'</b>'+(s?'<small class="'+c+'">'+s+'</small>':'')+'<input class="dt" type="date"'+lim()+' value="'+(b.due?iso(b.due):"")+'" data-l="bills" data-i="'+b.id+'" data-k="due" aria-label="'+esc(b.name)+' due date"></div><input class="amt" type="number" step="0.01" inputmode="decimal" value="'+b.amt+'" data-l="bills" data-i="'+b.id+'" data-k="amt" aria-label="'+esc(b.name)+' amount"><button class="x" data-del="bills" data-i="'+b.id+'" aria-label="Delete '+esc(b.name)+'">×</button></div>'}).join(""):'<div class="empty">No bills yet. Add one below.</div>';
+  var s="Set due date",c="";if(b.due){var ds=new Date(iso(b.due)+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});s="Due "+ds;if(!b.paid){var ef=Math.min(b.due,mr().n);if(ef<today){s="Overdue "+ds;c="late"}else if(ef-today<=3){s="Due soon "+ds;c="soon"}}}
+  return'<div class="row'+(b.paid?" paid":"")+'"><input type="checkbox" data-l="bills" data-i="'+b.id+'" data-k="paid"'+(b.paid?" checked":"")+' aria-label="Mark '+esc(b.name)+' paid"><div class="nm bn"><b>'+esc(b.name)+'</b><label class="pill '+c+'"><span>'+s+'</span><input type="date"'+lim()+' value="'+(b.due?iso(b.due):"")+'" data-l="bills" data-i="'+b.id+'" data-k="due" aria-label="'+esc(b.name)+' due date"></label></div><input class="amt" type="number" step="0.01" inputmode="decimal" value="'+b.amt+'" data-l="bills" data-i="'+b.id+'" data-k="amt" aria-label="'+esc(b.name)+' amount"><button class="x" data-del="bills" data-i="'+b.id+'" aria-label="Delete '+esc(b.name)+'">×</button></div>'}).join(""):'<div class="empty">No bills yet. Add one below.</div>';
  // extras
  var ex=S.extras.slice().sort(function(a,b){return(b.date||"").localeCompare(a.date||"")});
  $("exSum").textContent=ex.length?m(t.e)+" total":"";
  $("extras").innerHTML=ex.length?ex.map(function(e){var dt=e.date?new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";
   return'<div class="row"><div class="nm"><b>'+esc(e.name)+'</b><small>'+esc(e.cat||"Other")+(dt?", "+dt:"")+'</small></div><span>'+m(e.amt)+'</span><button class="x" data-del="extras" data-i="'+e.id+'" aria-label="Delete '+esc(e.name)+'">×</button></div>'}).join(""):'<div class="empty">Nothing extra yet. Fill-ups, dinners, and surprises go here.</div>';
+ var iv=S.inc.slice().sort(function(a,b){return(b.date||"").localeCompare(a.date||"")});
+ $("incSum").textContent=iv.length?"+"+m(t.i):"";
+ $("incList").innerHTML=iv.length?iv.map(function(e){var dt=e.date?new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";
+  return'<div class="row"><div class="nm"><b>'+esc(e.name)+'</b>'+(dt?'<small>'+dt+'</small>':'')+'</div><span style="color:var(--ok)">+'+m(e.amt)+'</span><button class="x" data-del="inc" data-i="'+e.id+'" aria-label="Delete '+esc(e.name)+'">\u00d7</button></div>'}).join(""):'<div class="empty">No extra pay yet. Bonuses, overtime, side jobs, and refunds go here.</div>';
  // categories
  $("cats").innerHTML=CATS.map(function(c){var tot=sum(S.extras.filter(function(e){return(e.cat||"Other")===c}),amt),cap=S.caps[c]||0,over=cap&&tot>cap;
   return'<div class="row"><div class="nm"><b>'+c+'</b><small class="'+(over?"late":"")+'">'+m(tot)+(cap?" of "+m(cap)+(over?", over by "+m(tot-cap):""):"")+'</small>'+(cap?'<div class="mini"><i style="width:'+num2(tot/cap*100)+'%;background:var(--'+(over?"bad":"ok")+')"></i></div>':"")+'</div><input class="amt" type="number" step="1" inputmode="decimal" placeholder="Cap" value="'+(cap||"")+'" data-cap="'+c+'" aria-label="'+c+' monthly cap"></div>'}).join("");
@@ -130,7 +150,7 @@ function render(){
   return'<div class="row"><div class="nm"><b>'+esc(b.name)+'</b><small>'+n+' payments left, paid off around '+pd+'</small></div><input class="amt" type="number" step="0.01" inputmode="decimal" value="'+b.bal+'" data-l="bills" data-i="'+b.id+'" data-k="bal" aria-label="'+esc(b.name)+' balance"><button class="x" data-untrack="'+b.id+'" aria-label="Stop tracking '+esc(b.name)+'">×</button></div>'}).join(""):'<div class="empty">No debts tracked. Pick a bill below and enter what you still owe.</div>';
  $("dBill").innerHTML=S.bills.filter(function(b){return!(b.bal>0)}).map(function(b){return'<option value="'+b.id+'">'+esc(b.name)+'</option>'}).join("");
  // history
- $("hist").innerHTML=S.hist.length?S.hist.slice().reverse().map(function(h){return'<div class="row"><div class="nm"><b>'+esc(h.month)+'</b><small>Bills '+m(h.b)+', extras '+m(h.e)+'</small></div><b class="'+(h.left<0?"neg":"")+'">'+m(h.left)+'</b></div>'}).join(""):'<div class="empty">No closed months yet.</div>';
+ $("hist").innerHTML=S.hist.length?S.hist.slice().reverse().map(function(h){return'<div class="row"><div class="nm"><b>'+esc(h.month)+'</b><small>Bills '+m(h.b)+', extras '+m(h.e)+(h.i?', extra pay '+m(h.i):'')+'</small></div><b class="'+(h.left<0?"neg":"")+'">'+m(h.left)+'</b></div>'}).join(""):'<div class="empty">No closed months yet.</div>';
 }
 function by(arr,id){return arr.filter(function(x){return x.id===+id})[0]}
 document.addEventListener("change",function(e){var t=e.target,d=t.dataset;
@@ -140,28 +160,32 @@ document.addEventListener("change",function(e){var t=e.target,d=t.dataset;
 $("income").addEventListener("input",function(){S.income=num(this.value);save();render()});
 $("pay").addEventListener("change",function(){S.pay=this.value;save();render()});
 document.addEventListener("click",function(e){var d=e.target.dataset;
+ if(d.del||d.untrack){var el=e.target;if(!el.classList.contains("arm")){el.classList.add("arm");el.textContent="Sure?";setTimeout(function(){if(el.isConnected){el.classList.remove("arm");el.textContent="\u00d7"}},3000);return}}
  if(d.del){S[d.del]=S[d.del].filter(function(x){return x.id!==+d.i})}
- else if(d.untrack){by(S.bills,d.untrack).bal=0}else return;save();render()});
+ else if(d.untrack){by(S.bills,d.untrack).bal=0}else if(d.close){$("close").scrollIntoView({block:"center"});$("close").click();return}else return;save();render()});
 $("addBill").onclick=function(){var n=$("bName").value.trim();if(!n)return $("bName").focus();
  S.bills.push({id:S.next++,name:n,amt:num($("bAmt").value),paid:false,due:dayOf($("bDue").value)});
- $("bName").value=$("bAmt").value=$("bDue").value="";save();render();$("bName").focus()};
+ $("bName").value=$("bAmt").value=$("bDue").value="";$("bDueTxt").textContent="Due date";save();render();$("bName").focus()};
 $("eCat").innerHTML=CATS.map(function(c){return"<option>"+c+"</option>"}).join("");
-$("eDate").value=new Date().toISOString().slice(0,10);
+$("eDate").value=tdy();
 $("addEx").onclick=function(){var n=$("eName").value.trim();if(!n)return $("eName").focus();
  S.extras.push({id:S.next++,name:n,amt:num($("eAmt").value),cat:$("eCat").value,date:$("eDate").value});
  $("eName").value=$("eAmt").value="";save();render();$("eName").focus()};
 $("addDebt").onclick=function(){var b=by(S.bills,$("dBill").value),v=num($("dBal").value);if(!b||v<=0)return $("dBal").focus();
  b.bal=v;$("dBal").value="";save();render()};
+$("iDate").value=tdy();
+$("addInc").onclick=function(){var n=$("iName").value.trim();if(!n)return $("iName").focus();S.inc.push({id:S.next++,name:n,amt:num($("iAmt").value),date:$("iDate").value});$("iName").value=$("iAmt").value="";save();render();$("iName").focus()};
+["iName","iAmt"].forEach(function(i){$(i).onkeydown=function(e){if(e.key==="Enter")$("addInc").click()}});
 var armed=0;
 $("close").onclick=function(){var b=this;
  if(!armed){armed=1;b.textContent="Tap again to confirm";b.className="btn warn";setTimeout(function(){armed=0;b.textContent="Close out month";b.className="btn ghost"},4000);return}
- var t=totals();S.hist.push({month:$("month").textContent,b:t.b,e:t.e,left:t.left});
+ var t=totals();S.hist.push({month:mLabel(S.month),b:t.b,e:t.e,i:t.i,left:t.left});
  if(t.left>0)S.goal.saved=num(S.goal.saved+t.left);
  S.bills.forEach(function(x){if(x.bal>0&&x.paid)x.bal=Math.max(0,num(x.bal-x.amt));x.paid=false});
- S.extras=[];armed=0;b.textContent="Close out month";b.className="btn ghost";save();render()};
+ S.extras=[];S.inc=[];S.month=ym();armed=0;b.textContent="Close out month";b.className="btn ghost";save();render()};
 $("exp").onclick=function(){var s=JSON.stringify(S);$("bk").value=s;$("bk").select();
  try{navigator.clipboard.writeText(s).then(function(){$("bkNote").textContent="Copied. Paste it into a note or message to keep it."},function(){$("bkNote").textContent="Select the text above and copy it to keep a backup."})}catch(x){$("bkNote").textContent="Select the text above and copy it to keep a backup."}};
-$("imp").onclick=function(){try{var n=JSON.parse($("bk").value);if(!n.bills||!n.extras)throw 0;S=n;S.hist=S.hist||[];S.caps=S.caps||{};S.goal=S.goal||{target:0,saved:0};S.pay=S.pay||"monthly";S.next=S.next||100;save();render();$("bkNote").textContent="Backup restored."}catch(x){$("bkNote").textContent="That text isn't a valid backup. Paste the full exported text and try again."}};
+$("imp").onclick=function(){try{var n=JSON.parse($("bk").value);if(!n.bills||!n.extras)throw 0;S=norm(n);save();render();$("bkNote").textContent="Backup restored."}catch(x){$("bkNote").textContent="That text isn't a valid backup. Paste the full exported text and try again."}};
 ["bName","bAmt","bDue"].forEach(function(i){$(i).onkeydown=function(e){if(e.key==="Enter")$("addBill").click()}});
 ["eName","eAmt"].forEach(function(i){$(i).onkeydown=function(e){if(e.key==="Enter")$("addEx").click()}});
 var THEMES=[["","Auto (follow phone)"],["light","Light"],["dark","Dark"],["midnight","Midnight"],["desert","Desert"],["olive","Olive"],["sunset","Sunset"]];
@@ -171,6 +195,8 @@ $("theme").value=document.documentElement.getAttribute("data-theme")||"";
 $("theme").onchange=function(){var v=this.value;if(v)document.documentElement.setAttribute("data-theme",v);else document.documentElement.removeAttribute("data-theme");try{localStorage.setItem("billManager.theme",v)}catch(e){}paintTheme()};
 paintTheme();
 (function(){var r=mr(),p=r.y+"-"+p2(r.m+1)+"-";$("bDue").min=p+"01";$("bDue").max=p+p2(r.n)})();
+$("bDue").onchange=function(){var v=this.value;$("bDueTxt").textContent=v?"Due "+new Date(v+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"Due date"};
+document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
 render();
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script></body></html>
