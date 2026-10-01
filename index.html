@@ -44,7 +44,7 @@ input.amt{width:92px;text-align:right}input.day{width:56px;text-align:center;pad
 .empty{padding:16px 14px;color:var(--mute)}.mini{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}.mini i{display:block;height:100%;background:var(--ok)}
 textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,monospace;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px}
 .note{color:var(--mute);font-size:14px;margin:8px 0 0}
-.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}.top h1{margin:0}.top select{padding:6px 8px;font-size:14px}
+.dt{margin-top:4px;padding:5px 8px;font-size:14px}.add .dt{margin:0;padding:8px 10px;font-size:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}.top h1{margin:0}.top select{padding:6px 8px;font-size:14px}
 :root[data-theme="midnight"]{--bg:#0b1220;--card:#121c30;--ink:#e6edf8;--mute:#8a9ab5;--line:#22304d;--ok:#5aa9ff;--bill:#7d8fb0;--extra:#f2b84b;--bad:#ff7b72;--on:#07101f}
 :root[data-theme="desert"]{--bg:#f3e9dc;--card:#fffaf2;--ink:#3b2a20;--mute:#8a7565;--line:#e4d3bf;--ok:#b4532a;--bill:#6b4f3f;--extra:#d99a2b;--bad:#a3262a;--on:#fff}
 :root[data-theme="olive"]{--bg:#1a1f14;--card:#232a1b;--ink:#e7ebd9;--mute:#9aa585;--line:#343d27;--ok:#a8c256;--bill:#7d8a63;--extra:#d9b44a;--bad:#e0735a;--on:#141a0c}
@@ -59,7 +59,7 @@ textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,monospace;color:var(-
 </div>
 <section id="checks" hidden><div class="head"><h2>Per paycheck</h2><span>Bills due 1st–14th use check 1, 15th+ use check 2</span></div><div class="list" id="checkList"></div></section>
 <section><div class="head"><h2>Bills</h2><span id="billSum"></span></div><div class="list" id="bills"></div>
- <div class="add"><input type="text" id="bName" placeholder="New bill name" aria-label="Bill name"><input type="number" id="bAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><input class="day" type="number" id="bDue" min="1" max="31" placeholder="Due" aria-label="Due day of month"><button class="btn" id="addBill">Add bill</button></div></section>
+ <div class="add"><input type="text" id="bName" placeholder="New bill name" aria-label="Bill name"><input type="number" id="bAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><input class="dt" type="date" id="bDue" aria-label="Due date"><button class="btn" id="addBill">Add bill</button></div></section>
 <section><div class="head"><h2>Extra expenses</h2><span id="exSum"></span></div><div class="list" id="extras"></div>
  <div class="add"><input type="text" id="eName" placeholder="What was it?" aria-label="Description"><input type="number" id="eAmt" step="0.01" inputmode="decimal" placeholder="Amount" aria-label="Amount"><select id="eCat" aria-label="Category"></select><input type="date" id="eDate" aria-label="Date"><button class="btn" id="addEx">Add expense</button></div></section>
 <section><div class="head"><h2>Spending by category</h2><span>Set a monthly cap if you want one</span></div><div class="list" id="cats"></div></section>
@@ -87,6 +87,11 @@ function amt(x){return x.amt}
 function ord(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
 function num2(n){return Math.max(0,Math.min(100,n))}
 function totals(){var b=sum(S.bills,amt),e=sum(S.extras,amt);return{b:b,e:e,left:S.income-b-e}}
+function mr(){var d=new Date();return{y:d.getFullYear(),m:d.getMonth(),n:new Date(d.getFullYear(),d.getMonth()+1,0).getDate()}}
+function p2(n){return("0"+n).slice(-2)}
+function iso(day){var r=mr();return r.y+"-"+p2(r.m+1)+"-"+p2(Math.min(day,r.n))}
+function lim(){var r=mr(),p=r.y+"-"+p2(r.m+1)+"-";return' min="'+p+'01" max="'+p+p2(r.n)+'"'}
+function dayOf(v){return v?parseInt(v.slice(8,10),10)||0:0}
 function render(){
  var d=new Date(),today=d.getDate(),t=totals();
  $("month").textContent=d.toLocaleDateString("en-US",{month:"long",year:"numeric"});
@@ -106,7 +111,7 @@ function render(){
  $("billSum").textContent=m(paidT)+" paid, "+m(t.b-paidT)+" due";
  $("bills").innerHTML=bills.length?bills.map(function(b){
   var s="",c="";if(b.due){s="Due the "+ord(b.due);if(!b.paid){if(b.due<today){s="Overdue, was due the "+ord(b.due);c="late"}else if(b.due-today<=3){s="Due soon, the "+ord(b.due);c="soon"}}}
-  return'<div class="row'+(b.paid?" paid":"")+'"><input type="checkbox" data-l="bills" data-i="'+b.id+'" data-k="paid"'+(b.paid?" checked":"")+' aria-label="Mark '+esc(b.name)+' paid"><div class="nm"><b>'+esc(b.name)+'</b>'+(s?'<small class="'+c+'">'+s+'</small>':'')+'</div><input class="day" type="number" min="1" max="31" placeholder="Due" value="'+(b.due||"")+'" data-l="bills" data-i="'+b.id+'" data-k="due" aria-label="'+esc(b.name)+' due day"><input class="amt" type="number" step="0.01" inputmode="decimal" value="'+b.amt+'" data-l="bills" data-i="'+b.id+'" data-k="amt" aria-label="'+esc(b.name)+' amount"><button class="x" data-del="bills" data-i="'+b.id+'" aria-label="Delete '+esc(b.name)+'">×</button></div>'}).join(""):'<div class="empty">No bills yet. Add one below.</div>';
+  return'<div class="row'+(b.paid?" paid":"")+'"><input type="checkbox" data-l="bills" data-i="'+b.id+'" data-k="paid"'+(b.paid?" checked":"")+' aria-label="Mark '+esc(b.name)+' paid"><div class="nm"><b>'+esc(b.name)+'</b>'+(s?'<small class="'+c+'">'+s+'</small>':'')+'<input class="dt" type="date"'+lim()+' value="'+(b.due?iso(b.due):"")+'" data-l="bills" data-i="'+b.id+'" data-k="due" aria-label="'+esc(b.name)+' due date"></div><input class="amt" type="number" step="0.01" inputmode="decimal" value="'+b.amt+'" data-l="bills" data-i="'+b.id+'" data-k="amt" aria-label="'+esc(b.name)+' amount"><button class="x" data-del="bills" data-i="'+b.id+'" aria-label="Delete '+esc(b.name)+'">×</button></div>'}).join(""):'<div class="empty">No bills yet. Add one below.</div>';
  // extras
  var ex=S.extras.slice().sort(function(a,b){return(b.date||"").localeCompare(a.date||"")});
  $("exSum").textContent=ex.length?m(t.e)+" total":"";
@@ -129,7 +134,7 @@ function render(){
 }
 function by(arr,id){return arr.filter(function(x){return x.id===+id})[0]}
 document.addEventListener("change",function(e){var t=e.target,d=t.dataset;
- if(d.l){var it=by(S[d.l],d.i);if(it){it[d.k]=t.type==="checkbox"?t.checked:num(t.value)||(d.k==="due"?0:0)}}
+ if(d.l){var it=by(S[d.l],d.i);if(it){it[d.k]=t.type==="checkbox"?t.checked:d.k==="due"?dayOf(t.value):num(t.value)}}
  else if(d.cap)S.caps[d.cap]=num(t.value);else if(d.g)S.goal[d.g]=num(t.value);else if(t.id!=="pay")return;
  save();render()});
 $("income").addEventListener("input",function(){S.income=num(this.value);save();render()});
@@ -138,7 +143,7 @@ document.addEventListener("click",function(e){var d=e.target.dataset;
  if(d.del){S[d.del]=S[d.del].filter(function(x){return x.id!==+d.i})}
  else if(d.untrack){by(S.bills,d.untrack).bal=0}else return;save();render()});
 $("addBill").onclick=function(){var n=$("bName").value.trim();if(!n)return $("bName").focus();
- S.bills.push({id:S.next++,name:n,amt:num($("bAmt").value),paid:false,due:Math.min(31,num($("bDue").value))||0});
+ S.bills.push({id:S.next++,name:n,amt:num($("bAmt").value),paid:false,due:dayOf($("bDue").value)});
  $("bName").value=$("bAmt").value=$("bDue").value="";save();render();$("bName").focus()};
 $("eCat").innerHTML=CATS.map(function(c){return"<option>"+c+"</option>"}).join("");
 $("eDate").value=new Date().toISOString().slice(0,10);
@@ -165,6 +170,7 @@ $("theme").innerHTML=THEMES.map(function(t){return'<option value="'+t[0]+'">'+t[
 $("theme").value=document.documentElement.getAttribute("data-theme")||"";
 $("theme").onchange=function(){var v=this.value;if(v)document.documentElement.setAttribute("data-theme",v);else document.documentElement.removeAttribute("data-theme");try{localStorage.setItem("billManager.theme",v)}catch(e){}paintTheme()};
 paintTheme();
+(function(){var r=mr(),p=r.y+"-"+p2(r.m+1)+"-";$("bDue").min=p+"01";$("bDue").max=p+p2(r.n)})();
 render();
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script></body></html>
